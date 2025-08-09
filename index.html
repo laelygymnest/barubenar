@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Admin Racepack - Edit & Update</title>
+<style>
+  :root{--accent:#ff7f27;--green:#1b8f3b;--red:#b02a2a}
+  body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial;margin:16px;background:#f6f6f6;color:#222}
+  header{display:flex;align-items:center;gap:12px;margin-bottom:12px}
+  h1{margin:0;font-size:20px}
+  .warning{background:#fff4e6;border-left:6px solid var(--accent);padding:12px;border-radius:6px;margin-bottom:12px}
+  .controls{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;align-items:center}
+  input[type="text"], input[type="password"], select, textarea{padding:8px;border:1px solid #ddd;border-radius:6px}
+  button{background:var(--accent);color:#fff;border:0;padding:8px 10px;border-radius:6px;cursor:pointer}
+  table{width:100%;border-collapse:collapse;background:#fff;border-radius:6px;overflow:hidden}
+  th,td{padding:8px;border-bottom:1px solid #eee;text-align:left;font-size:13px}
+  th{background:var(--accent);color:#fff;position:sticky;top:0}
+  tr:nth-child(even){background:#fcfcfc}
+  .status-badge{display:inline-block;padding:4px 8px;border-radius:999px;color:#fff;font-size:12px}
+  .sudah{background:var(--green)}
+  .belum{background:var(--red)}
+  .small{font-size:13px;color:#555}
+  .stat-grid{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+  .stat{background:#fff;padding:10px;border-radius:6px;border:1px solid #eee;min-width:150px;text-align:center}
+  .stat .n{font-weight:700;color:var(--accent);font-size:20px}
+  .inline-input{width:100%}
+  @media (max-width:900px){th,td{font-size:12px} .controls{flex-direction:column;align-items:stretch}}
+</style>
+</head>
+<body>
+
+<header>
+  <div style="width:48px;height:48px;border-radius:8px;background:linear-gradient(45deg,#fff,#fff5f0);display:flex;align-items:center;justify-content:center;border:1px solid #ffd1a8">🏃‍♀️</div>
+  <div>
+    <h1>Admin Racepack — Edit Pengambilan</h1>
+    <div class="small">Cari, edit kolom pengambilan, lalu klik "Simpan" untuk memperbarui Google Sheet.</div>
+  </div>
+</header>
+
+<div class="warning">
+  JIKA ADA PESERTA YANG PENGAMBILAN RACEPACKNYA DIWAKILKAN DAN TIDAK MEMBAWA SURAT KUASA, MAKA PESERTA BISA MENGIRIM SOFT FILE SURAT KUASA YANG SUDAH DI ISI DAN DITANDATANGANI BESERTA FOTO KTP DAN DI DM KE IG TEGAL CITY RUN. HAL INI UNTUK MENCEGAH HAL YANG TIDAK DIINGINKAN SEPERTI PENGAMBILAN RACEPACK BERULANG. <strong>TUNJUKAN ID CARD & EMAIL VERIFIKASI</strong>
+</div>
+
+<div class="controls">
+  <input id="pwd" type="password" placeholder="Masukkan password (untuk update)" />
+  <input id="q" type="text" placeholder="Cari No BIB / Nama / Barcode..." style="flex:1" oninput="onSearch()" />
+  <button onclick="reload()">🔁 Reload</button>
+</div>
+
+<div class="stat-grid" id="statGrid" aria-hidden="false">
+  <!-- Statistik terisi di sini -->
+</div>
+
+<table id="tbl">
+  <thead>
+    <tr>
+      <th style="width:80px">No BIB</th>
+      <th style="min-width:180px">Nama Peserta</th>
+      <th style="width:80px">Size</th>
+      <th style="width:120px">Barcode</th>
+      <th style="width:110px">Status</th>
+      <th style="min-width:140px">Nama Staff</th>
+      <th style="min-width:140px">Nama Pengambil</th>
+      <th style="width:120px">No. Tlp</th>
+      <th style="width:120px">ID Card</th>
+      <th style="min-width:160px">Keterangan</th>
+      <th style="width:90px">Aksi</th>
+    </tr>
+  </thead>
+  <tbody></tbody>
+</table>
+
+<script>
+/* ========== CONFIG ========== */
+const WEBAPP = "https://script.google.com/macros/s/AKfycbwju6ztDAnn7Sd9PCwHx1PMTxslFx-8nd_6-TU1qWDAigPL15zdbuqBNF4mQFLcoRNq/exec";
+const SKIP_ROWS = 7; // skip 1..7 (tampilkan mulai baris 8)
+/* ============================ */
+
+let DATA = []; // raw data from API (array of peserta objects)
+let FILTERED = [];
+let clientPwd = '';
+
+// utility
+function el(tag, attrs={}, children=''){ const e=document.createElement(tag); for(const k in attrs) e.setAttribute(k, attrs[k]); if(typeof children==='string') e.innerHTML=children; else if(Array.isArray(children)) children.forEach(c=>e.appendChild(c)); return e; }
+function text(s){ return document.createTextNode(s==null?'':s); }
+
+async function fetchData(){
+  try{
+    const r = await fetch(WEBAPP + '?_=' + Date.now());
+    if(!r.ok) throw new Error('Fetch failed '+r.status);
+    const json = await r.json();
+    // expect json is array of objects (peserta) OR {peserta,...} depending script; handle both
+    let arr = [];
+    if(Array.isArray(json)) arr = json;
+    else if(json.peserta) arr = json.peserta;
+    DATA = arr.slice(SKIP_ROWS); // skip headers/notes in top rows
+    FILTERED = DATA.slice();
+    renderTable(FILTERED);
+    renderStats();
+  }catch(err){
+    alert('Gagal ambil data. Cek console.'); console.error(err);
+  }
+}
+
+function renderStats(){
+  // compute totals and per-size counts and taken counts
+  const total = DATA.length;
+  const taken = DATA.filter(d => (d.status||'').toLowerCase().includes('sudah')).length;
+  const notTaken = total - taken;
+  const sizes = ['XS','S','M','L','XL','XXL','XXXL'];
+  const sizeTotals = {}; const sizeTaken = {};
+  sizes.forEach(s=>{ sizeTotals[s]=0; sizeTaken[s]=0; });
+  DATA.forEach(d=>{
+    const s = (d.size_baju||'').toUpperCase();
+    if(sizeTotals[s]!==undefined) sizeTotals[s] += 1;
+    if((d.status||'').toLowerCase().includes('sudah') && sizeTaken[s]!==undefined) sizeTaken[s] += 1;
+  });
+
+  const grid = document.getElementById('statGrid'); grid.innerHTML = '';
+  grid.appendChild(statBox('Total Peserta', total));
+  grid.appendChild(statBox('Sudah Ambil', taken));
+  grid.appendChild(statBox('Belum Ambil', notTaken));
+  sizes.forEach(s=>{
+    grid.appendChild(statBox('Size ' + s, `${sizeTotals[s]} (ambil ${sizeTaken[s]})`));
+  });
+}
+
+function statBox(title, val){
+  const d = el('div', {class:'stat'});
+  d.innerHTML = `<div style="color:#666;font-size:13px">${title}</div><div class="n" style="font-weight:700;color:var(--accent);margin-top:6px">${val}</div>`;
+  return d;
+}
+
+function renderTable(rows){
+  const tbody = document.querySelector('#tbl tbody'); tbody.innerHTML = '';
+  rows.forEach((r, idx) => {
+    const tr = document.createElement('tr');
+
+    // Read-only cells: no_bib, nama_peserta, size_baju, barcode
+    tr.appendChild(el('td',{}, r.no_bib || ''));
+    tr.appendChild(el('td',{}, r.nama_peserta || ''));
+    tr.appendChild(el('td',{}, r.size_baju || ''));
+    tr.appendChild(el('td',{}, r.barcode || ''));
+
+    // Editable: status (select), nama_staff, nama_pengambil, no_tlp_pengambil, id_card_pengambil, keterangan
+    const statusCell = el('td');
+    const sel = el('select', {class:'inline-input'});
+    ['','Belum','Sudah','Sudah Ambil'].forEach(opt=>{
+      const o = el('option',{value:opt}, opt); sel.appendChild(o);
+    });
+    sel.value = r.status || '';
+    // color badge display next to select
+    const badge = el('span', {style:'margin-left:8px'});
+    setBadge(badge, r.status);
+    sel.addEventListener('change', ()=> setBadge(badge, sel.value));
+    statusCell.appendChild(sel);
+    statusCell.appendChild(badge);
+    tr.appendChild(statusCell);
+
+    // nama_staff
+    const ns = el('td'); ns.appendChild(el('input',{type:'text', class:'inline-input', value: r.nama_staff || ''})); tr.appendChild(ns);
+    const np = el('td'); np.appendChild(el('input',{type:'text', class:'inline-input', value: r.nama_pengambil || ''})); tr.appendChild(np);
+    const tel = el('td'); tel.appendChild(el('input',{type:'text', class:'inline-input', value: r.no_tlp_pengambil || ''})); tr.appendChild(tel);
+    const idc = el('td'); idc.appendChild(el('input',{type:'text', class:'inline-input', value: r.id_card_pengambil || ''})); tr.appendChild(idc);
+    const ket = el('td'); ket.appendChild(el('input',{type:'text', class:'inline-input', value: r.keterangan || ''})); tr.appendChild(ket);
+
+    // aksi save
+    const aksi = el('td');
+    const saveBtn = el('button',{}, 'Simpan');
+    saveBtn.addEventListener('click', ()=> onSaveRow(r, {
+      status: sel.value,
+      nama_staff: ns.querySelector('input').value,
+      nama_pengambil: np.querySelector('input').value,
+      no_tlp_pengambil: tel.querySelector('input').value,
+      id_card_pengambil: idc.querySelector('input').value,
+      keterangan: ket.querySelector('input').value,
+      btn: saveBtn
+    }));
+    aksi.appendChild(saveBtn);
+    tr.appendChild(aksi);
+
+    tbody.appendChild(tr);
+  });
+}
+
+function setBadge(elm, status){
+  const s = (status||'').toLowerCase();
+  if(s.includes('sudah')){
+    elm.innerHTML = '<span class="status-badge sudah">SUDAH</span>';
+  } else if(s.includes('belum')){
+    elm.innerHTML = '<span class="status-badge belum">BELUM</span>';
+  } else {
+    elm.innerHTML = '';
+  }
+}
+
+function onSearch(){
+  const q = document.getElementById('q').value.trim().toLowerCase();
+  if(!q){ FILTERED = DATA.slice(); renderTable(FILTERED); return; }
+  FILTERED = DATA.filter(d => {
+    return (d.no_bib||'').toString().toLowerCase().includes(q) ||
+           (d.nama_peserta||'').toLowerCase().includes(q) ||
+           (d.barcode||'').toString().toLowerCase().includes(q);
+  });
+  renderTable(FILTERED);
+}
+
+// save single row via POST
+async function onSaveRow(orig, newVals){
+  const pwd = document.getElementById('pwd').value || '';
+  if(!pwd){ alert('Masukkan password (di atas) untuk menyimpan.'); return; }
+  // disable button
+  newVals.btn.disabled = true;
+  newVals.btn.textContent = 'Menyimpan...';
+
+  const payload = {
+    password: pwd,
+    no_bib: orig.no_bib,
+    status: newVals.status,
+    nama_staff: newVals.nama_staff,
+    nama_pengambil: newVals.nama_pengambil,
+    no_tlp_pengambil: newVals.no_tlp_pengambil,
+    id_card_pengambil: newVals.id_card_pengambil,
+    keterangan: newVals.keterangan
+  };
+
+  try{
+    const res = await fetch(WEBAPP, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify(payload)
+    });
+    const j = await res.json();
+    if(j.success){
+      // reflect changes locally
+      // find index in DATA by no_bib (first occurrence)
+      const ix = DATA.findIndex(d => (d.no_bib||'') == (orig.no_bib||''));
+      if(ix > -1){
+        DATA[ix] = Object.assign(DATA[ix], payload); // update local
+      }
+      // re-render
+      renderTable(FILTERED.length ? FILTERED : DATA);
+      renderStats();
+      newVals.btn.textContent = 'Simpan';
+      newVals.btn.disabled = false;
+      alert('Berhasil disimpan.');
+    } else {
+      throw new Error(j.message || 'Gagal menyimpan.');
+    }
+  }catch(err){
+    console.error(err);
+    alert('Error saat menyimpan: ' + (err.message || err));
+    newVals.btn.textContent = 'Simpan';
+    newVals.btn.disabled = false;
+  }
+}
+
+async function reload(){ await fetchData(); document.getElementById('q').value=''; }
+
+window.addEventListener('load', ()=> fetchData());
+</script>
+</body>
+</html>
