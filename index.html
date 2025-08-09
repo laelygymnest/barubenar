@@ -1,229 +1,118 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="id">
 <head>
-<meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Admin Racepack — Edit & Simpan</title>
-<style>
-  :root{--accent:#ff7f27;--green:#1b8f3b;--red:#b02a2a}
-  body{font-family:system-ui,Segoe UI,Roboto,Arial;margin:16px;background:#f6f6f6}
-  header{display:flex;align-items:center;gap:12px;margin-bottom:12px}
-  h1{margin:0}
-  .warning{background:#fff4e6;border-left:6px solid var(--accent);padding:12px;border-radius:6px;margin-bottom:12px}
-  .controls{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
-  input[type="text"], input[type="password"], select{padding:8px;border:1px solid #ddd;border-radius:6px}
-  button{background:var(--accent);color:#fff;border:0;padding:8px 10px;border-radius:6px;cursor:pointer}
-  table{width:100%;border-collapse:collapse;background:#fff}
-  th,td{padding:8px;border-bottom:1px solid #eee;text-align:left;font-size:13px}
-  th{background:var(--accent);color:#fff}
-  .status-badge{padding:4px 8px;border-radius:999px;color:#fff;font-size:12px}
-  .sudah{background:var(--green)} .belum{background:var(--red)}
-  .stat-grid{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
-  .stat{background:#fff;padding:10px;border-radius:6px;border:1px solid #eee;min-width:140px;text-align:center}
-  .n{font-weight:700;color:var(--accent);font-size:18px}
-  .msg{padding:8px;border-radius:6px;margin-bottom:8px}
-  .msg.error{background:#ffe6e6;color:#900}
-  .msg.ok{background:#e6ffef;color:#0a6}
-  @media (max-width:900px){ table, thead, tbody, tr, th, td{display:block} thead{display:none} td{padding:8px} td::before{content:attr(data-label);font-weight:600;display:block;margin-bottom:6px} }
-</style>
+  <meta charset="UTF-8">
+  <title>Admin Racepack</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; }
+    table { border-collapse: collapse; width: 100%; }
+    th, td { border: 1px solid #ddd; padding: 8px; }
+    th { background: orange; color: white; }
+    .warning { background: #ffe6e6; padding: 10px; border: 1px solid red; margin-bottom: 15px; }
+    input { width: 100%; }
+  </style>
 </head>
 <body>
 
-<header>
-  <div style="width:48px;height:48px;border-radius:8px;background:#fff5e6;display:flex;align-items:center;justify-content:center;border:1px solid #ffd1a8">🏃‍♀️</div>
-  <div>
-    <h1>Admin Racepack — Edit Pengambilan</h1>
-    <div style="color:#666;font-size:13px">Login sekali, lalu simpan baris tanpa memasukkan password lagi (session aktif sampai tab ditutup).</div>
+<div id="loginSection">
+  <h2>Masukkan Password</h2>
+  <input type="password" id="passwordInput">
+  <button onclick="checkPassword()">Login</button>
+</div>
+
+<div id="contentSection" style="display:none;">
+  <div class="warning">
+    <strong>PERHATIAN:</strong> JIKA ADA PESERTA YANG PENGAMBILAN RACEPACKNYA DIWAKILKAN DAN TIDAK MEMBAWA SURAT KUASA, MAKA PESERTA BISA MENGIRIM SOFT FILE SURAT KUASA YANG SUDAH DI ISI DAN DITANDATANGANI BESERTA FOTO KTP DAN DI DM KE IG TEGAL CITY RUN. HAL INI UNTUK MENCEGAH HAL YANG TIDAK DIINGINKAN SEPERTI PENGAMBILAN RACEPACK BERULANG.  
+    TUNJUKAN ID CARD & EMAIL VERIFIKASI
   </div>
-</header>
-
-<div class="warning">
-  JIKA ADA PESERTA YANG PENGAMBILAN RACEPACKNYA DIWAKILKAN DAN TIDAK MEMBAWA SURAT KUASA, MAKA PESERTA BISA MENGIRIM SOFT FILE SURAT KUASA YANG SUDAH DI ISI DAN DITANDATANGANI BESERTA FOTO KTP DAN DI DM KE IG TEGAL CITY RUN. HAL INI UNTUK MENCEGAH HAL YANG TIDAK DIINGINKAN SEPERTI PENGAMBILAN RACEPACK BERULANG. <strong>TUNJUKAN ID CARD & EMAIL VERIFIKASI</strong>
+  <table id="racepackTable">
+    <thead>
+      <tr>
+        <th>No BIB</th>
+        <th>Nama Peserta</th>
+        <th>Size Baju</th>
+        <th>Status</th>
+        <th>Nama Staff</th>
+        <th>Nama Pengambil</th>
+        <th>No Tlp Pengambil</th>
+        <th>ID Card Pengambil</th>
+        <th>Keterangan</th>
+        <th>Aksi</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
 </div>
-
-<div id="messages"></div>
-
-<div class="controls">
-  <input id="pwd" type="password" placeholder="Masukkan password" />
-  <button id="btnLogin">Login</button>
-  <input id="q" type="text" placeholder="Cari No BIB / Nama / Barcode..." style="flex:1" />
-  <button id="btnReload">Reload</button>
-</div>
-
-<div class="stat-grid" id="statGrid" aria-hidden="false"></div>
-
-<table id="tbl" aria-label="Tabel peserta">
-  <thead>
-    <tr>
-      <th>No BIB</th><th>Nama Peserta</th><th>Size</th><th>Barcode</th>
-      <th>Status</th><th>Nama Staff</th><th>Nama Pengambil</th><th>No. Tlp</th><th>ID Card</th><th>Keterangan</th><th>Aksi</th>
-    </tr>
-  </thead>
-  <tbody></tbody>
-</table>
 
 <script>
-/* ========== CONFIG ========== */
-const WEBAPP_URL = "https://script.google.com/macros/s/AKfycbwju6ztDAnn7Sd9PCwHx1PMTxslFx-8nd_6-TU1qWDAigPL15zdbuqBNF4mQFLcoRNq/exec";
-const SKIP_ROWS = 7; // jangan tampilkan baris 1..7
-/* ============================ */
+const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzhfk2Sp6-DB2z5mCl2Ssl5AwPoNginMeqKycVP4JYqi9sY0X2Uim8UGhFRAC2NFVMC/exec";
+const PASSWORD = "12345"; // ganti sesuai kebutuhan
 
-function showMsg(text, type='error'){ const m=document.getElementById('messages'); m.innerHTML='<div class=\"msg '+(type==='ok'?'ok':'error')+'\">'+text+'</div>'; setTimeout(()=>{ if(m) m.innerHTML=''; },5000); }
-function el(tag, attrs={}, html=''){ const e=document.createElement(tag); for(const k in attrs) e.setAttribute(k, attrs[k]); e.innerHTML = html; return e; }
-
-let DATA = []; // full dataset (array of objects)
-
-// restore saved password (session)
-if (sessionStorage.getItem('racepack_pwd')) {
-  document.getElementById('pwd').value = sessionStorage.getItem('racepack_pwd');
-}
-
-// button events
-document.getElementById('btnLogin').addEventListener('click', ()=>{
-  const p = document.getElementById('pwd').value.trim();
-  if(!p){ showMsg('Password kosong','error'); return; }
-  sessionStorage.setItem('racepack_pwd', p);
-  loadData();
-});
-document.getElementById('btnReload').addEventListener('click', ()=> loadData());
-document.getElementById('q').addEventListener('input', ()=> filterTable());
-
-// load on page open if password already in session
-window.addEventListener('load', ()=> {
-  if(sessionStorage.getItem('racepack_pwd')) loadData();
+document.addEventListener("DOMContentLoaded", () => {
+  if (sessionStorage.getItem("loggedIn") === "true") {
+    document.getElementById("loginSection").style.display = "none";
+    document.getElementById("contentSection").style.display = "block";
+    loadData();
+  }
 });
 
-async function loadData(){
-  try{
-    const r = await fetch(WEBAPP_URL + '?_=' + Date.now());
-    if(!r.ok) throw new Error('HTTP '+r.status);
-    const j = await r.json();
-    // j should be { peserta: [...], statistik: {...}, stok: {...} } OR { peserta: [...] } OR legacy array
-    let arr = [];
-    if (Array.isArray(j)) arr = j;
-    else if (j.peserta) arr = j.peserta;
-    else if (j.data) arr = j.data;
-    else if (j.peserta === undefined && j.data === undefined && j.stok === undefined && j.statistik === undefined && j.length) arr = j;
-
-    DATA = arr.slice(SKIP_ROWS); // drop first SKIP_ROWS rows (0..SKIP_ROWS-1)
-    renderStats(); renderTable(DATA);
-    showMsg('Data berhasil dimuat','ok');
-  }catch(err){
-    console.error(err);
-    showMsg('Gagal ambil data: '+ (err.message || err), 'error');
+function checkPassword() {
+  const input = document.getElementById("passwordInput").value;
+  if (input === PASSWORD) {
+    sessionStorage.setItem("loggedIn", "true");
+    document.getElementById("loginSection").style.display = "none";
+    document.getElementById("contentSection").style.display = "block";
+    loadData();
+  } else {
+    alert("Password salah!");
   }
 }
 
-function renderStats(){
-  const total = DATA.length;
-  const sudah = DATA.filter(d => (d.status||'').toString().toLowerCase().includes('sudah')).length;
-  const belum = total - sudah;
-  const sizes = ['XS','S','M','L','XL','XXL','XXXL'];
-  const totals = {}; const taken = {}; sizes.forEach(s=>{totals[s]=0; taken[s]=0;});
-  DATA.forEach(d=>{
-    const s = (d.size_baju||'').toString().toUpperCase();
-    if(totals[s]!==undefined) totals[s]++;
-    if(taken[s]!==undefined && (d.status||'').toString().toLowerCase().includes('sudah')) taken[s]++;
-  });
-  const grid = document.getElementById('statGrid'); grid.innerHTML = '';
-  grid.appendChild(statBox('Total Peserta', total));
-  grid.appendChild(statBox('Sudah Ambil', sudah));
-  grid.appendChild(statBox('Belum Ambil', belum));
-  sizes.forEach(s => grid.appendChild(statBox('Size '+s, totals[s] + ' (ambil ' + taken[s] + ')')));
-}
-function statBox(title, val){ const d = el('div',{class:'stat'}, '<div style=\"color:#666\">'+title+'</div><div class=\"n\">'+val+'</div>'); return d; }
-
-function renderTable(rows){
-  const tbody = document.querySelector('#tbl tbody'); tbody.innerHTML = '';
-  rows.forEach(r => {
-    const tr = document.createElement('tr');
-    // read-only
-    tr.appendChild(td(r.no_bib));
-    tr.appendChild(td(r.nama_peserta));
-    tr.appendChild(td(r.size_baju));
-    tr.appendChild(td(r.barcode));
-    // status select + badge
-    const statusCell = el('td'); const sel = el('select',{}); ['', 'Belum','Sudah','Sudah Ambil'].forEach(o=> sel.appendChild(el('option',{value:o}, o)));
-    sel.value = r.status || '';
-    const badge = el('span',{}, ''); setBadge(badge, r.status);
-    sel.addEventListener('change', ()=> setBadge(badge, sel.value));
-    statusCell.appendChild(sel); statusCell.appendChild(badge); tr.appendChild(statusCell);
-    // editable fields
-    tr.appendChild(tdInput('nama_staff', r.nama_staff));
-    tr.appendChild(tdInput('nama_pengambil', r.nama_pengambil));
-    tr.appendChild(tdInput('no_tlp_pengambil', r.no_tlp_pengambil));
-    tr.appendChild(tdInput('id_card_pengambil', r.id_card_pengambil));
-    tr.appendChild(tdInput('keterangan', r.keterangan));
-    // aksi
-    const aksi = el('td'); const btn = el('button',{}, 'Simpan'); btn.addEventListener('click', ()=> {
-      const payload = {
-        password: sessionStorage.getItem('racepack_pwd') || '',
-        no_bib: r.no_bib,
-        status: sel.value,
-        nama_staff: tr.querySelector('input[data-key=\"nama_staff\"]').value,
-        nama_pengambil: tr.querySelector('input[data-key=\"nama_pengambil\"]').value,
-        no_tlp_pengambil: tr.querySelector('input[data-key=\"no_tlp_pengambil\"]').value,
-        id_card_pengambil: tr.querySelector('input[data-key=\"id_card_pengambil\"]').value,
-        keterangan: tr.querySelector('input[data-key=\"keterangan\"]').value
-      };
-      saveRow(payload, btn);
-    }); aksi.appendChild(btn); tr.appendChild(aksi);
-
-    tbody.appendChild(tr);
-  });
-}
-
-function td(text){ const d = el('td',{} , escapeHtml(text)); return d; }
-function tdInput(key, val){ return el('td',{}, '<input data-key=\"'+key+'\" value=\"'+escapeAttr(val||'')+'\" style=\"width:100%\"/>'); }
-function setBadge(el, status){ const s=(status||'').toLowerCase(); if(s.includes('sudah')) el.innerHTML = '<span class=\"status-badge sudah\">SUDAH</span>'; else if(s.includes('belum')) el.innerHTML = '<span class=\"status-badge belum\">BELUM</span>'; else el.innerHTML = ''; }
-
-async function saveRow(payload, btn){
-  btn.disabled = true; const old = btn.textContent; btn.textContent = 'Menyimpan...';
-  try{
-    // use text/plain to avoid preflight
-    const res = await fetch(WEBAPP_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'text/plain;charset=UTF-8' },
-      body: JSON.stringify(payload)
+function loadData() {
+  fetch(WEB_APP_URL)
+    .then(res => res.json())
+    .then(data => {
+      const tbody = document.querySelector("#racepackTable tbody");
+      tbody.innerHTML = "";
+      data.forEach((row, index) => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${row[0]}</td>
+          <td>${row[1]}</td>
+          <td>${row[2]}</td>
+          <td><input value="${row[3] || ''}"></td>
+          <td><input value="${row[4] || ''}"></td>
+          <td><input value="${row[5] || ''}"></td>
+          <td><input value="${row[6] || ''}"></td>
+          <td><input value="${row[7] || ''}"></td>
+          <td><input value="${row[8] || ''}"></td>
+          <td><button onclick="saveRow(${index})">Simpan</button></td>
+        `;
+        tbody.appendChild(tr);
+      });
     });
-    if(!res.ok){
-      const t = await res.text().catch(()=>null);
-      throw new Error('HTTP '+res.status + (t?(' — '+t):''));
-    }
-    const j = await res.json();
-    if(j.success){
-      showMsg('Berhasil disimpan', 'ok');
-      // update local DATA
-      const ix = DATA.findIndex(d => String(d.no_bib) === String(payload.no_bib));
-      if(ix > -1){
-        DATA[ix].status = payload.status;
-        DATA[ix].nama_staff = payload.nama_staff;
-        DATA[ix].nama_pengambil = payload.nama_pengambil;
-        DATA[ix].no_tlp_pengambil = payload.no_tlp_pengambil;
-        DATA[ix].id_card_pengambil = payload.id_card_pengambil;
-        DATA[ix].keterangan = payload.keterangan;
-      }
-      renderStats();
+}
+
+function saveRow(index) {
+  const row = document.querySelectorAll("#racepackTable tbody tr")[index];
+  const inputs = row.querySelectorAll("input");
+  const updatedData = Array.from(inputs).map(input => input.value);
+
+  fetch(WEB_APP_URL, {
+    method: "POST",
+    body: JSON.stringify({ rowIndex: index, updatedData }),
+    headers: { "Content-Type": "application/json" }
+  })
+  .then(res => res.json())
+  .then(resp => {
+    if (resp.success) {
+      alert("Data berhasil disimpan");
     } else {
-      throw new Error(j.message || 'Server returned success:false');
+      alert("Gagal menyimpan: " + resp.error);
     }
-  }catch(err){
-    console.error(err);
-    showMsg('Error saat menyimpan: ' + (err.message || err), 'error');
-  }finally{
-    btn.disabled = false; btn.textContent = old;
-  }
+  });
 }
-
-function filterTable(){
-  const q = document.getElementById('q').value.trim().toLowerCase();
-  if(!q) return renderTable(DATA);
-  const f = DATA.filter(d => (d.no_bib||'').toString().toLowerCase().includes(q) || (d.nama_peserta||'').toLowerCase().includes(q) || (d.barcode||'').toString().toLowerCase().includes(q));
-  renderTable(f);
-}
-
-function escapeHtml(s){ if(s==null) return ''; return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
-function escapeAttr(s){ return (s||'').replace(/"/g,'&quot;'); }
 </script>
+
 </body>
 </html>
