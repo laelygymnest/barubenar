@@ -2,7 +2,7 @@
 <html lang="id">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Admin Racepack</title>
   <style>
     :root {
@@ -103,6 +103,9 @@
         align-items: stretch;
       }
     }
+    input[type="text"]:disabled {
+      background: #eee;
+    }
   </style>
 </head>
 <body>
@@ -129,7 +132,7 @@
     </div>
   </header>
 
-  <div class="warning">
+  <div class="warning" role="alert">
     JIKA ADA PESERTA YANG PENGAMBILAN RACEPACKNYA DIWAKILKAN DAN TIDAK MEMBAWA
     SURAT KUASA, MAKA PESERTA BISA MENGIRIM SOFT FILE SURAT KUASA YANG SUDAH DI
     ISI DAN DITANDATANGANI BESERTA FOTO KTP DAN DI DM KE IG TEGAL CITY RUN. HAL
@@ -144,14 +147,14 @@
     <input
       id="q"
       type="text"
-      placeholder="Cari No BIB / Nama Peserta / Becode"
+      placeholder="Cari No BIB / Nama Peserta / Bercode"
       style="flex: 1"
       disabled
     />
     <button id="btnReload" disabled>Reload</button>
   </div>
 
-  <div class="stat-grid" id="statGrid" aria-hidden="false"></div>
+  <div class="stat-grid" id="statGrid" aria-live="polite" aria-atomic="true"></div>
 
   <!-- stok detail -->
   <div style="margin-bottom: 12px">
@@ -171,3 +174,217 @@
           <th>Total Keseluruhan</th>
           <th id="totAll">0</th>
           <th id="totTaken">0</th>
+          <th id="totRemain">0</th>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+
+  <table aria-label="Data racepack" id="racepackTable" role="grid">
+    <thead>
+      <tr>
+        <th>No BIB</th>
+        <th>Nama Peserta</th>
+        <th>Size Baju</th>
+        <th>Bercode</th>
+        <th>Status</th>
+        <th>Nama Staff</th>
+        <th>Nama Pengambil</th>
+        <th>No Tlp Pengambil</th>
+        <th>ID Card Pengambil</th>
+        <th>Keterangan</th>
+        <th>Aksi</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <script>
+    const WEB_APP_URL =
+      "https://script.google.com/macros/s/AKfycbyztsI4T6GPBHTRq7T-ZUAkXw_FpM6ondmpaTysR-AFDYmoVhN1ex92qbFvO1eHQ3VH/exec";
+
+    const PASSWORD = "12345"; // ganti sesuai kebutuhan
+
+    let dataRacepack = [];
+    let filteredData = [];
+
+    const loginInput = document.getElementById("pwd");
+    const loginBtn = document.getElementById("btnLogin");
+    const searchInput = document.getElementById("q");
+    const reloadBtn = document.getElementById("btnReload");
+    const statGrid = document.getElementById("statGrid");
+    const stokTbody = document.querySelector("#stokDetail tbody");
+    const totAllEl = document.getElementById("totAll");
+    const totTakenEl = document.getElementById("totTaken");
+    const totRemainEl = document.getElementById("totRemain");
+    const tableBody = document.querySelector("#racepackTable tbody");
+
+    loginBtn.addEventListener("click", () => {
+      const val = loginInput.value.trim();
+      if (val === PASSWORD) {
+        sessionStorage.setItem("loggedIn", "true");
+        loginInput.disabled = true;
+        loginBtn.disabled = true;
+        searchInput.disabled = false;
+        reloadBtn.disabled = false;
+        loadData();
+      } else {
+        alert("Password salah!");
+      }
+    });
+
+    reloadBtn.addEventListener("click", () => {
+      loadData();
+    });
+
+    searchInput.addEventListener("input", () => {
+      const q = searchInput.value.toLowerCase();
+      filteredData = dataRacepack.filter(
+        (item) =>
+          (item.no_bib && item.no_bib.toLowerCase().includes(q)) ||
+          (item.nama_peserta && item.nama_peserta.toLowerCase().includes(q)) ||
+          (item.bercode && item.bercode.toLowerCase().includes(q))
+      );
+      renderTable(filteredData);
+      updateStats(filteredData);
+    });
+
+    window.addEventListener("load", () => {
+      if (sessionStorage.getItem("loggedIn") === "true") {
+        loginInput.disabled = true;
+        loginBtn.disabled = true;
+        searchInput.disabled = false;
+        reloadBtn.disabled = false;
+        loadData();
+      }
+    });
+
+    async function loadData() {
+      try {
+        const res = await fetch(WEB_APP_URL);
+        if (!res.ok) throw new Error("Response not ok");
+        const json = await res.json();
+        dataRacepack = json;
+        filteredData = json;
+        renderTable(filteredData);
+        updateStats(filteredData);
+      } catch (err) {
+        alert("Gagal ambil data: " + err.message);
+      }
+    }
+
+    function renderTable(data) {
+      tableBody.innerHTML = "";
+      data.forEach((row, idx) => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${row.no_bib || ""}</td>
+          <td>${row.nama_peserta || ""}</td>
+          <td>${row.size_baju || ""}</td>
+          <td>${row.bercode || ""}</td>
+          <td><input type="text" value="${row.status || ""}" data-index="${idx}" data-field="status"></td>
+          <td><input type="text" value="${row.nama_staff || ""}" data-index="${idx}" data-field="nama_staff"></td>
+          <td><input type="text" value="${row.nama_pengambil || ""}" data-index="${idx}" data-field="nama_pengambil"></td>
+          <td><input type="text" value="${row.no_tlp_pengambil || ""}" data-index="${idx}" data-field="no_tlp_pengambil"></td>
+          <td><input type="text" value="${row.id_card_pengambil || ""}" data-index="${idx}" data-field="id_card_pengambil"></td>
+          <td><input type="text" value="${row.keterangan || ""}" data-index="${idx}" data-field="keterangan"></td>
+          <td><button data-index="${idx}">Simpan</button></td>
+        `;
+        tableBody.appendChild(tr);
+      });
+
+      // Attach event listener ke tombol simpan tiap baris
+      tableBody.querySelectorAll("button").forEach((btn) => {
+        btn.addEventListener("click", onSaveClicked);
+      });
+    }
+
+    function updateStats(data) {
+      // Hitung stok berdasarkan size
+      const sizes = ["XS", "S", "M", "L", "XL", "XXL", "XXXL"];
+      let stok = {};
+      sizes.forEach((s) => (stok[s] = { total: 0, taken: 0 }));
+
+      data.forEach((item) => {
+        let size = item.size_baju ? item.size_baju.toUpperCase() : "";
+        if (stok[size]) {
+          stok[size].total++;
+          if ((item.status || "").toLowerCase() === "sudah diambil") {
+            stok[size].taken++;
+          }
+        }
+      });
+
+      // Render stok detail tabel
+      stokTbody.innerHTML = "";
+      let totalAll = 0,
+        totalTaken = 0;
+      sizes.forEach((s) => {
+        const remain = stok[s].total - stok[s].taken;
+        totalAll += stok[s].total;
+        totalTaken += stok[s].taken;
+        stokTbody.innerHTML += `<tr>
+          <td>${s}</td>
+          <td>${stok[s].total}</td>
+          <td>${stok[s].taken}</td>
+          <td>${remain}</td>
+        </tr>`;
+      });
+      totAllEl.textContent = totalAll;
+      totTakenEl.textContent = totalTaken;
+      totRemainEl.textContent = totalAll - totalTaken;
+
+      // Update statistik umum
+      statGrid.innerHTML = `
+        <div class="stat"><div>Total Peserta</div><div class="n">${data.length}</div></div>
+        <div class="stat"><div>Sudah Ambil Racepack</div><div class="n">${totalTaken}</div></div>
+        <div class="stat"><div>Belum Ambil Racepack</div><div class="n">${totalAll - totalTaken}</div></div>
+      `;
+    }
+
+    async function onSaveClicked(e) {
+      const idx = e.target.dataset.index;
+      if (typeof idx === "undefined") return;
+      const row = filteredData[idx];
+      const tr = e.target.closest("tr");
+
+      // Ambil input updated
+      const inputs = tr.querySelectorAll("input");
+      inputs.forEach((input) => {
+        const field = input.dataset.field;
+        if (field) {
+          row[field] = input.value.trim();
+        }
+      });
+
+      // Kirim update ke server
+      try {
+        const res = await fetch(WEB_APP_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            no_bib: row.no_bib,
+            status: row.status,
+            nama_staff: row.nama_staff,
+            nama_pengambil: row.nama_pengambil,
+            no_tlp_pengambil: row.no_tlp_pengambil,
+            id_card_pengambil: row.id_card_pengambil,
+            keterangan: row.keterangan,
+            password: PASSWORD,
+          }),
+        });
+
+        const json = await res.json();
+        if (json.success) {
+          alert("Data berhasil disimpan!");
+          loadData();
+        } else {
+          alert("Gagal menyimpan: " + (json.message || json.error));
+        }
+      } catch (err) {
+        alert("Error saat menyimpan: " + err.message);
+      }
+    }
+  </script>
+</body>
+</html>
