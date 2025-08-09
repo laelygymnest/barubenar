@@ -24,6 +24,7 @@
   .msg{padding:8px;border-radius:6px;margin-bottom:8px}
   .msg.error{background:#ffe6e6;color:#900}
   .msg.ok{background:#e6ffef;color:#0a6}
+  @media (max-width:900px){ table, thead, tbody, tr, th, td{display:block} thead{display:none} td{padding:8px} td::before{content:attr(data-label);font-weight:600;display:block;margin-bottom:6px} }
 </style>
 </head>
 <body>
@@ -43,15 +44,15 @@
 <div id="messages"></div>
 
 <div class="controls">
-  <input id="pwd" type="password" placeholder="Masukkan password untuk update (disimpan sesion)" />
+  <input id="pwd" type="password" placeholder="Masukkan password" />
   <button id="btnLogin">Login</button>
   <input id="q" type="text" placeholder="Cari No BIB / Nama / Barcode..." style="flex:1" />
   <button id="btnReload">Reload</button>
 </div>
 
-<div class="stat-grid" id="statGrid"></div>
+<div class="stat-grid" id="statGrid" aria-hidden="false"></div>
 
-<table id="tbl">
+<table id="tbl" aria-label="Tabel peserta">
   <thead>
     <tr>
       <th>No BIB</th><th>Nama Peserta</th><th>Size</th><th>Barcode</th>
@@ -62,40 +63,51 @@
 </table>
 
 <script>
-const WEBAPP = "https://script.google.com/macros/s/AKfycbwju6ztDAnn7Sd9PCwHx1PMTxslFx-8nd_6-TU1qWDAigPL15zdbuqBNF4mQFLcoRNq/exec";
-const SKIP = 7;
+/* ========== CONFIG ========== */
+const WEBAPP_URL = "https://script.google.com/macros/s/AKfycbwju6ztDAnn7Sd9PCwHx1PMTxslFx-8nd_6-TU1qWDAigPL15zdbuqBNF4mQFLcoRNq/exec";
+const SKIP_ROWS = 7; // jangan tampilkan baris 1..7
+/* ============================ */
 
-function showMsg(text, type='error'){ const m=document.getElementById('messages'); m.innerHTML = '<div class=\"msg '+(type==='ok'?'ok':'error')+'\">'+text+'</div>'; setTimeout(()=>{ if(m) m.innerHTML=''; },5000); }
+function showMsg(text, type='error'){ const m=document.getElementById('messages'); m.innerHTML='<div class=\"msg '+(type==='ok'?'ok':'error')+'\">'+text+'</div>'; setTimeout(()=>{ if(m) m.innerHTML=''; },5000); }
 function el(tag, attrs={}, html=''){ const e=document.createElement(tag); for(const k in attrs) e.setAttribute(k, attrs[k]); e.innerHTML = html; return e; }
 
-let DATA = [], FILTERED = [];
+let DATA = []; // full dataset (array of objects)
 
-// session password storage
-if(sessionStorage.getItem('racepack_pwd')){
+// restore saved password (session)
+if (sessionStorage.getItem('racepack_pwd')) {
   document.getElementById('pwd').value = sessionStorage.getItem('racepack_pwd');
 }
 
+// button events
 document.getElementById('btnLogin').addEventListener('click', ()=>{
   const p = document.getElementById('pwd').value.trim();
-  if(!p){ showMsg('Password tidak boleh kosong'); return; }
+  if(!p){ showMsg('Password kosong','error'); return; }
   sessionStorage.setItem('racepack_pwd', p);
   loadData();
 });
-
 document.getElementById('btnReload').addEventListener('click', ()=> loadData());
-document.getElementById('q').addEventListener('input', ()=> { const v=this.value; filterTable(); });
+document.getElementById('q').addEventListener('input', ()=> filterTable());
+
+// load on page open if password already in session
+window.addEventListener('load', ()=> {
+  if(sessionStorage.getItem('racepack_pwd')) loadData();
+});
 
 async function loadData(){
   try{
-    const r = await fetch(WEBAPP + '?_=' + Date.now());
+    const r = await fetch(WEBAPP_URL + '?_=' + Date.now());
     if(!r.ok) throw new Error('HTTP '+r.status);
-    const json = await r.json();
-    // if API returns object { peserta: [...] } handle that
-    let arr = Array.isArray(json) ? json : (json.peserta ? json.peserta : []);
-    DATA = arr.slice(SKIP); FILTERED = DATA.slice();
-    renderStats();
-    renderTable(FILTERED);
-    showMsg('Data dimuat', 'ok');
+    const j = await r.json();
+    // j should be { peserta: [...], statistik: {...}, stok: {...} } OR { peserta: [...] } OR legacy array
+    let arr = [];
+    if (Array.isArray(j)) arr = j;
+    else if (j.peserta) arr = j.peserta;
+    else if (j.data) arr = j.data;
+    else if (j.peserta === undefined && j.data === undefined && j.stok === undefined && j.statistik === undefined && j.length) arr = j;
+
+    DATA = arr.slice(SKIP_ROWS); // drop first SKIP_ROWS rows (0..SKIP_ROWS-1)
+    renderStats(); renderTable(DATA);
+    showMsg('Data berhasil dimuat','ok');
   }catch(err){
     console.error(err);
     showMsg('Gagal ambil data: '+ (err.message || err), 'error');
@@ -104,88 +116,74 @@ async function loadData(){
 
 function renderStats(){
   const total = DATA.length;
-  const taken = DATA.filter(d => (d.status||'').toLowerCase().includes('sudah')).length;
-  const notTaken = total - taken;
+  const sudah = DATA.filter(d => (d.status||'').toString().toLowerCase().includes('sudah')).length;
+  const belum = total - sudah;
   const sizes = ['XS','S','M','L','XL','XXL','XXXL'];
-  const totals = {}; const takenBy = {}; sizes.forEach(s=>{ totals[s]=0; takenBy[s]=0; });
-  DATA.forEach(d => {
-    const s = (d.size_baju||'').toUpperCase();
+  const totals = {}; const taken = {}; sizes.forEach(s=>{totals[s]=0; taken[s]=0;});
+  DATA.forEach(d=>{
+    const s = (d.size_baju||'').toString().toUpperCase();
     if(totals[s]!==undefined) totals[s]++;
-    if((d.status||'').toLowerCase().includes('sudah') && takenBy[s]!==undefined) takenBy[s]++;
+    if(taken[s]!==undefined && (d.status||'').toString().toLowerCase().includes('sudah')) taken[s]++;
   });
-
-  const grid = document.getElementById('statGrid'); grid.innerHTML='';
-  grid.appendChild(stat('Total Peserta', total));
-  grid.appendChild(stat('Sudah Ambil', taken));
-  grid.appendChild(stat('Belum Ambil', notTaken));
-  sizes.forEach(s=> grid.appendChild(stat('Size '+s, totals[s]+' (ambil '+takenBy[s]+')')));
+  const grid = document.getElementById('statGrid'); grid.innerHTML = '';
+  grid.appendChild(statBox('Total Peserta', total));
+  grid.appendChild(statBox('Sudah Ambil', sudah));
+  grid.appendChild(statBox('Belum Ambil', belum));
+  sizes.forEach(s => grid.appendChild(statBox('Size '+s, totals[s] + ' (ambil ' + taken[s] + ')')));
 }
-
-function stat(title, val){
-  const d = el('div',{class:'stat'}, '<div style=\"color:#666\">'+title+'</div><div class=\"n\">'+val+'</div>');
-  return d;
-}
+function statBox(title, val){ const d = el('div',{class:'stat'}, '<div style=\"color:#666\">'+title+'</div><div class=\"n\">'+val+'</div>'); return d; }
 
 function renderTable(rows){
-  const tbody = document.querySelector('#tbl tbody'); tbody.innerHTML='';
+  const tbody = document.querySelector('#tbl tbody'); tbody.innerHTML = '';
   rows.forEach(r => {
     const tr = document.createElement('tr');
-    tr.innerHTML = `
-      <td>${escapeHtml(r.no_bib)}</td>
-      <td>${escapeHtml(r.nama_peserta)}</td>
-      <td>${escapeHtml(r.size_baju)}</td>
-      <td>${escapeHtml(r.barcode)}</td>
-      <td></td>
-      <td><input class="inp" data-key="nama_staff" value="${escapeAttr(r.nama_staff||'')}"/></td>
-      <td><input class="inp" data-key="nama_pengambil" value="${escapeAttr(r.nama_pengambil||'')}"/></td>
-      <td><input class="inp" data-key="no_tlp_pengambil" value="${escapeAttr(r.no_tlp_pengambil||'')}"/></td>
-      <td><input class="inp" data-key="id_card_pengambil" value="${escapeAttr(r.id_card_pengambil||'')}"/></td>
-      <td><input class="inp" data-key="keterangan" value="${escapeAttr(r.keterangan||'')}"/></td>
-      <td><button class="saveBtn">Simpan</button></td>
-    `;
-    // set status cell with select + badge
-    const statusCell = tr.children[4];
-    const select = el('select',{class:'sel'});
-    ['', 'Belum', 'Sudah', 'Sudah Ambil'].forEach(o=> select.appendChild(el('option',{value:o}, o)));
-    select.value = r.status || '';
-    const badge = el('span',{}, '');
-    setBadge(badge, r.status);
-    select.addEventListener('change', ()=> setBadge(badge, select.value));
-    statusCell.appendChild(select);
-    statusCell.appendChild(badge);
-
-    // save handler
-    tr.querySelector('.saveBtn').addEventListener('click', ()=> {
+    // read-only
+    tr.appendChild(td(r.no_bib));
+    tr.appendChild(td(r.nama_peserta));
+    tr.appendChild(td(r.size_baju));
+    tr.appendChild(td(r.barcode));
+    // status select + badge
+    const statusCell = el('td'); const sel = el('select',{}); ['', 'Belum','Sudah','Sudah Ambil'].forEach(o=> sel.appendChild(el('option',{value:o}, o)));
+    sel.value = r.status || '';
+    const badge = el('span',{}, ''); setBadge(badge, r.status);
+    sel.addEventListener('change', ()=> setBadge(badge, sel.value));
+    statusCell.appendChild(sel); statusCell.appendChild(badge); tr.appendChild(statusCell);
+    // editable fields
+    tr.appendChild(tdInput('nama_staff', r.nama_staff));
+    tr.appendChild(tdInput('nama_pengambil', r.nama_pengambil));
+    tr.appendChild(tdInput('no_tlp_pengambil', r.no_tlp_pengambil));
+    tr.appendChild(tdInput('id_card_pengambil', r.id_card_pengambil));
+    tr.appendChild(tdInput('keterangan', r.keterangan));
+    // aksi
+    const aksi = el('td'); const btn = el('button',{}, 'Simpan'); btn.addEventListener('click', ()=> {
       const payload = {
         password: sessionStorage.getItem('racepack_pwd') || '',
         no_bib: r.no_bib,
-        status: select.value,
+        status: sel.value,
         nama_staff: tr.querySelector('input[data-key=\"nama_staff\"]').value,
         nama_pengambil: tr.querySelector('input[data-key=\"nama_pengambil\"]').value,
         no_tlp_pengambil: tr.querySelector('input[data-key=\"no_tlp_pengambil\"]').value,
         id_card_pengambil: tr.querySelector('input[data-key=\"id_card_pengambil\"]').value,
         keterangan: tr.querySelector('input[data-key=\"keterangan\"]').value
       };
-      saveRow(payload, tr.querySelector('.saveBtn'));
-    });
+      saveRow(payload, btn);
+    }); aksi.appendChild(btn); tr.appendChild(aksi);
 
     tbody.appendChild(tr);
   });
 }
 
-function setBadge(el, status){
-  const s = (status||'').toLowerCase();
-  if(s.includes('sudah')) el.innerHTML = '<span class=\"status-badge sudah\">SUDAH</span>';
-  else if(s.includes('belum')) el.innerHTML = '<span class=\"status-badge belum\">BELUM</span>';
-  else el.innerHTML = '';
-}
+function td(text){ const d = el('td',{} , escapeHtml(text)); return d; }
+function tdInput(key, val){ return el('td',{}, '<input data-key=\"'+key+'\" value=\"'+escapeAttr(val||'')+'\" style=\"width:100%\"/>'); }
+function setBadge(el, status){ const s=(status||'').toLowerCase(); if(s.includes('sudah')) el.innerHTML = '<span class=\"status-badge sudah\">SUDAH</span>'; else if(s.includes('belum')) el.innerHTML = '<span class=\"status-badge belum\">BELUM</span>'; else el.innerHTML = ''; }
 
 async function saveRow(payload, btn){
-  btn.disabled = true; const oldText = btn.textContent; btn.textContent = 'Menyimpan...';
+  btn.disabled = true; const old = btn.textContent; btn.textContent = 'Menyimpan...';
   try{
-    const res = await fetch(WEBAPP, {
+    // use text/plain to avoid preflight
+    const res = await fetch(WEBAPP_URL, {
       method: 'POST',
-      headers: {'Content-Type':'application/json'},
+      headers: { 'Content-Type': 'text/plain;charset=UTF-8' },
       body: JSON.stringify(payload)
     });
     if(!res.ok){
@@ -207,35 +205,25 @@ async function saveRow(payload, btn){
       }
       renderStats();
     } else {
-      throw new Error(j.message || 'Server balikan sukses:false');
+      throw new Error(j.message || 'Server returned success:false');
     }
   }catch(err){
-    console.error('Save error', err);
+    console.error(err);
     showMsg('Error saat menyimpan: ' + (err.message || err), 'error');
   }finally{
-    btn.disabled = false; btn.textContent = oldText;
+    btn.disabled = false; btn.textContent = old;
   }
 }
 
 function filterTable(){
   const q = document.getElementById('q').value.trim().toLowerCase();
-  if(!q){ renderTable(DATA); return; }
-  const f = DATA.filter(d=>{
-    return String(d.no_bib||'').toLowerCase().includes(q) ||
-           String(d.nama_peserta||'').toLowerCase().includes(q) ||
-           String(d.barcode||'').toLowerCase().includes(q);
-  });
+  if(!q) return renderTable(DATA);
+  const f = DATA.filter(d => (d.no_bib||'').toString().toLowerCase().includes(q) || (d.nama_peserta||'').toLowerCase().includes(q) || (d.barcode||'').toString().toLowerCase().includes(q));
   renderTable(f);
 }
 
 function escapeHtml(s){ if(s==null) return ''; return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 function escapeAttr(s){ return (s||'').replace(/"/g,'&quot;'); }
-
-// initial
-window.addEventListener('load', ()=> {
-  // if password already in sessionStorage, auto-load
-  if(sessionStorage.getItem('racepack_pwd')) loadData();
-});
 </script>
 </body>
 </html>
