@@ -2,408 +2,348 @@
 <html lang="id">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Admin Racepack TCR</title>
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Admin Racepack - TCR</title>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Montserrat&display=swap');
-
-  :root {
-    --orange: #ff7f27;
-    --dark-orange: #cc661a;
-    --background: #fff5e6;
-    --text-color: #333;
-    --border-color: #ffad5e;
-  }
-
   body {
-    margin: 0;
-    font-family: 'Montserrat', sans-serif;
-    background: var(--background);
-    color: var(--text-color);
+    font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+    margin: 0; padding: 20px;
+    background: #fff7e6;
+    color: #333;
+    position: relative;
     min-height: 100vh;
-    display: flex;
-    flex-direction: column;
   }
-
-  header {
-    background: var(--orange);
-    color: white;
-    padding: 16px 24px;
-    position: relative;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    box-shadow: 0 3px 5px rgba(0,0,0,0.15);
+  h1 {
+    color: #e85c00;
   }
-
-  header img.logo {
-    height: 50px;
-  }
-
-  header h1 {
-    margin: 0;
-    font-weight: 700;
-    font-size: 1.5rem;
-  }
-
-  main {
-    flex: 1;
-    padding: 20px 24px 40px 24px;
-    position: relative;
-    max-width: 1200px;
+  .login-container, .content-container {
+    max-width: 1100px;
     margin: 0 auto;
   }
-
-  .warning {
-    background: #fff4e6;
-    border-left: 6px solid var(--dark-orange);
-    padding: 16px;
-    margin-bottom: 24px;
-    border-radius: 6px;
-    font-weight: 600;
-    color: #663300;
-    font-size: 0.9rem;
-    line-height: 1.4;
-  }
-
-  /* Siluet orang lari di kanan bawah */
-  body::after {
-    content: "";
-    position: fixed;
-    right: 0;
-    bottom: 0;
-    width: 200px;
-    height: 200px;
-    background: url('https://i.imgur.com/7HMPcFx.png') no-repeat center/contain;
-    opacity: 0.15;
-    pointer-events: none;
-    user-select: none;
-  }
-
-  #loginSection {
-    max-width: 400px;
-    margin: 80px auto;
-    background: white;
-    padding: 32px;
-    border-radius: 12px;
-    box-shadow: 0 4px 15px rgb(255 127 39 / 0.4);
+  .login-container {
+    margin-top: 100px;
     text-align: center;
   }
-
-  #loginSection h2 {
-    margin-bottom: 24px;
-    color: var(--orange);
-  }
-
-  #loginSection input {
-    width: 100%;
+  input[type="password"], input[type="text"] {
+    padding: 10px;
     font-size: 1rem;
-    padding: 12px;
-    border: 2px solid var(--orange);
-    border-radius: 8px;
-    margin-bottom: 20px;
+    width: 300px;
+    border: 2px solid #e85c00;
+    border-radius: 6px;
   }
-
-  #loginSection button {
-    background: var(--orange);
+  button {
+    background: #e85c00;
     border: none;
-    padding: 12px 24px;
     color: white;
-    font-weight: 700;
-    font-size: 1.1rem;
-    border-radius: 8px;
+    padding: 11px 18px;
+    margin-left: 10px;
+    font-size: 1rem;
+    border-radius: 6px;
     cursor: pointer;
-    transition: background 0.3s;
   }
-
-  #loginSection button:hover {
-    background: var(--dark-orange);
+  button:hover {
+    background: #d14f00;
   }
-
-  #contentSection {
-    display: none;
+  .warning {
+    background: #fff3e0;
+    border-left: 6px solid #e85c00;
+    padding: 12px 20px;
+    margin-bottom: 15px;
+    border-radius: 6px;
+    font-weight: 600;
   }
-
-  .controls {
+  .search-bar {
+    margin: 15px 0;
     display: flex;
+    gap: 10px;
     flex-wrap: wrap;
-    gap: 12px;
-    margin-bottom: 24px;
     align-items: center;
   }
-
-  .controls input[type="text"] {
-    flex-grow: 1;
-    font-size: 1rem;
-    padding: 8px 12px;
-    border: 2px solid var(--orange);
-    border-radius: 8px;
+  .search-bar input {
+    flex: 1;
+    max-width: 400px;
   }
-
-  .controls button {
-    background: var(--orange);
-    border: none;
-    padding: 10px 20px;
-    color: white;
-    font-weight: 700;
-    border-radius: 8px;
-    cursor: pointer;
-    transition: background 0.3s;
-  }
-
-  .controls button:hover {
-    background: var(--dark-orange);
-  }
-
   table {
     width: 100%;
     border-collapse: collapse;
+    margin-bottom: 40px;
     background: white;
-    border-radius: 12px;
-    overflow: hidden;
-    box-shadow: 0 4px 10px rgb(255 127 39 / 0.3);
+    box-shadow: 0 0 6px rgba(0,0,0,0.1);
   }
-
   th, td {
-    padding: 12px 10px;
-    border-bottom: 1px solid #f0a759;
-    text-align: left;
-    font-size: 0.9rem;
-  }
-
-  th {
-    background: var(--orange);
-    color: white;
-    font-weight: 700;
-  }
-
-  tbody tr:hover {
-    background: #ffe6cc;
-  }
-
-  input[type="text"] {
-    font-size: 0.9rem;
-    width: 100%;
-    padding: 6px 8px;
-    border: 1.5px solid var(--orange);
-    border-radius: 6px;
-  }
-
-  input[type="text"]:focus {
-    outline: none;
-    border-color: var(--dark-orange);
-  }
-
-  button.save-btn {
-    background: var(--dark-orange);
-    border: none;
-    padding: 6px 12px;
-    border-radius: 6px;
-    color: white;
-    font-weight: 700;
-    cursor: pointer;
-    transition: background 0.3s;
-  }
-
-  button.save-btn:hover {
-    background: #a3530e;
-  }
-
-  /* Statistik stok */
-  #stokSection {
-    margin: 30px 0 50px;
-  }
-
-  #stokSection h3 {
-    margin-bottom: 12px;
-    color: var(--dark-orange);
-    font-weight: 700;
-  }
-
-  #stokTable {
-    width: 400px;
-    max-width: 100%;
-    border-collapse: collapse;
-  }
-
-  #stokTable th, #stokTable td {
-    border: 1.5px solid var(--orange);
-    padding: 10px 15px;
-    font-weight: 600;
-    font-size: 1rem;
+    border: 1px solid #f1a73b;
+    padding: 8px 12px;
+    font-size: 14px;
     text-align: center;
   }
-
-  #stokTable th {
-    background: var(--orange);
+  th {
+    background: #e85c00;
     color: white;
+    user-select: none;
   }
-
-  #stokTable tfoot th {
-    background: var(--dark-orange);
+  td input {
+    width: 100%;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    padding: 4px 6px;
+    font-size: 13px;
+    box-sizing: border-box;
+  }
+  td input:disabled {
+    background: #f9f9f9;
+    color: #999;
+  }
+  .btn-save {
+    background: #f68b1e;
+    border: none;
     color: white;
+    padding: 6px 10px;
+    font-size: 13px;
+    border-radius: 5px;
+    cursor: pointer;
   }
-
-  @media(max-width: 720px) {
-    header {
-      flex-wrap: wrap;
-      justify-content: center;
-    }
-    #stokTable {
-      width: 100%;
-    }
+  .btn-save:hover {
+    background: #d16d00;
+  }
+  .stok-table {
+    max-width: 700px;
+    margin-bottom: 60px;
+  }
+  .stok-table th, .stok-table td {
+    font-size: 13px;
+  }
+  .footer-siluet {
+    position: fixed;
+    bottom: 0; right: 0;
+    opacity: 0.12;
+    width: 280px;
+    user-select: none;
+    pointer-events: none;
+    z-index: 0;
+  }
+  /* Logo TCR top-left */
+  .logo-tcr {
+    position: fixed;
+    top: 20px; left: 20px;
+    width: 120px;
+    user-select: none;
+    pointer-events: none;
+    opacity: 0.9;
   }
 </style>
 </head>
 <body>
 
-<header>
-  <img src="https://i.imgur.com/O4qhLOz.png" alt="Logo TCR" class="logo" />
-  <h1>Tegal City Run - Admin Racepack</h1>
-</header>
+<img src="https://drive.google.com/file/d/1vUNuSYmg8a6hxRO-TrTQUbcltg7baQKi/view?usp=sharing" alt="Logo TCR" class="logo-tcr">
 
-<main>
-  <!-- Login Section -->
-  <section id="loginSection">
-    <h2>Login Admin</h2>
-    <input type="password" id="passwordInput" placeholder="Masukkan password" />
-    <button id="loginBtn">Masuk</button>
-  </section>
+<div class="login-container" id="loginSection">
+  <h1>Admin Racepack TCR - Login</h1>
+  <input type="password" id="passwordInput" placeholder="Masukkan password" />
+  <button onclick="handleLogin()">Login</button>
+</div>
 
-  <!-- Konten utama setelah login -->
-  <section id="contentSection" style="display:none;">
-    <div class="warning" role="alert" aria-live="polite">
-      JIKA ADA PESERTA YANG PENGAMBILAN RACEPACKNYA DIWAKILKAN DAN TIDAK MEMBAWA SURAT KUASA,
-      MAKA PESERTA BISA MENGIRIM SOFT FILE SURAT KUASA YANG SUDAH DI ISI DAN DITANDATANGANI BESERTA FOTO KTP
-      DAN DI DM KE IG TEGAL CITY RUN. HAL INI UNTUK MENCEGAH HAL YANG TIDAK DIINGINKAN SEPERTI PENGAMBILAN RACEPACK BERULANG.
-      <br><strong>TUNJUKAN ID CARD & EMAIL VERIFIKASI</strong>
-    </div>
+<div class="content-container" id="contentSection" style="display:none;">
+  <div class="warning">
+    JIKA ADA PESERTA YANG PENGAMBILAN RACEPACKNYA DIWAKILKAN DAN TIDAK MEMBAWA SURAT KUASA, MAKA PESERTA BISA MENGIRIM SOFT FILE SURAT KUASA YANG SUDAH DI ISI DAN DITANDATANGANI BESERTA FOTO KTP DAN DI DM KE IG TEGAL CITY RUN. HAL INI UNTUK MENCEGAH HAL YANG TIDAK DIINGINKAN SEPERTI PENGAMBILAN RACEPACK BERULANG.<br>
+    <strong>TUNJUKAN ID CARD & EMAIL VERIFIKASI</strong>
+  </div>
 
-    <div class="controls">
-      <input type="text" id="searchInput" placeholder="Cari No Bib, Nama Peserta, Bercode..." />
-      <button id="reloadBtn">Reload Data</button>
-    </div>
+  <div class="search-bar">
+    <input type="text" id="searchInput" placeholder="Cari No BIB / Nama Peserta / Becode" oninput="renderTable()" />
+    <button onclick="loadData()">Reload Data</button>
+  </div>
 
-    <div id="stokSection">
-      <h3>Rincian Stok Size Baju</h3>
-      <table id="stokTable" aria-label="Rincian stok size baju">
-        <thead>
-          <tr>
-            <th>Size</th>
-            <th>Total</th>
-            <th>Sudah Diambil</th>
-            <th>Belum Diambil</th>
-          </tr>
-        </thead>
-        <tbody></tbody>
-        <tfoot>
-          <tr>
-            <th>Total Keseluruhan</th>
-            <th id="totalAll">0</th>
-            <th id="totalTaken">0</th>
-            <th id="totalRemain">0</th>
-          </tr>
-        </tfoot>
-      </table>
-    </div>
+  <table class="stok-table" aria-label="Rincian stok size baju">
+    <thead>
+      <tr>
+        <th>Size</th>
+        <th>Total Peserta</th>
+        <th>Sudah Diambil</th>
+        <th>Belum Diambil</th>
+      </tr>
+    </thead>
+    <tbody id="stokBody"></tbody>
+  </table>
 
-    <table id="dataTable" aria-label="Tabel data racepack">
-      <thead>
-        <tr>
-          <th>No Bib</th>
-          <th>Nama Peserta</th>
-          <th>Size Baju</th>
-          <th>Bercode</th>
-          <th>Status</th>
-          <th>Nama Staff</th>
-          <th>Nama Pengambil</th>
-          <th>No Tlp Pengambil</th>
-          <th>ID Card Pengambil</th>
-          <th>Keterangan</th>
-          <th>Aksi</th>
-        </tr>
-      </thead>
-      <tbody></tbody>
-    </table>
+  <table id="racepackTable" aria-label="Data Racepack">
+    <thead>
+      <tr>
+        <th>No BIB</th>
+        <th>Nama Peserta</th>
+        <th>Size Baju</th>
+        <th>Becode</th>
+        <th>Status</th>
+        <th>Nama Staff</th>
+        <th>Nama Pengambil</th>
+        <th>No Tlp Pengambil</th>
+        <th>ID Card Pengambil</th>
+        <th>Keterangan</th>
+        <th>Aksi</th>
+      </tr>
+    </thead>
+    <tbody id="tableBody"></tbody>
+  </table>
+</div>
 
-  </section>
-</main>
+<img src="https://drive.google.com/file/d/1vUNuSYmg8a6hxRO-TrTQUbcltg7baQKi/view?usp=sharing" alt="Runner Silhouette" class="footer-siluet" />
 
 <script>
-  const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbxJ5rlrXVY9NxoggS2mWnBpDOmH56l8E3Pg6ZaID_z0ZWhZZujKYj_Djm6AKv6m4TOy/exec'; // Ganti dengan URL web app kamu
-  const PASSWORD = 'rahasia123'; // Ganti dengan password yang sama dengan di apps script
+  const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxJ5rlrXVY9NxoggS2mWnBpDOmH56l8E3Pg6ZaID_z0ZWhZZujKYj_Djm6AKv6m4TOy/exec"; // Ganti URL Web App-mu
+  const PASSWORD = "rahasia123"; // Ganti sesuai Apps Script
 
-  const loginSection = document.getElementById('loginSection');
-  const contentSection = document.getElementById('contentSection');
-  const passwordInput = document.getElementById('passwordInput');
-  const loginBtn = document.getElementById('loginBtn');
-  const searchInput = document.getElementById('searchInput');
-  const reloadBtn = document.getElementById('reloadBtn');
-  const dataTableBody = document.querySelector('#dataTable tbody');
-  const stokTableBody = document.querySelector('#stokTable tbody');
-  const totalAllEl = document.getElementById('totalAll');
-  const totalTakenEl = document.getElementById('totalTaken');
-  const totalRemainEl = document.getElementById('totalRemain');
+  let allData = [];
+  let loggedIn = false;
 
-  let racepackData = [];
-  let filteredData = [];
-
-  // Cek session login
-  if (sessionStorage.getItem('loggedIn') === 'true') {
-    showContent();
-    fetchData();
-  }
-
-  loginBtn.addEventListener('click', () => {
-    if (passwordInput.value === PASSWORD) {
-      sessionStorage.setItem('loggedIn', 'true');
-      showContent();
-      fetchData();
+  function handleLogin() {
+    const passInput = document.getElementById("passwordInput").value.trim();
+    if (passInput === PASSWORD) {
+      loggedIn = true;
+      sessionStorage.setItem("racepackLoggedIn", "true");
+      document.getElementById("loginSection").style.display = "none";
+      document.getElementById("contentSection").style.display = "block";
+      loadData();
     } else {
-      alert('Password salah!');
+      alert("Password salah!");
     }
-  });
-
-  reloadBtn.addEventListener('click', fetchData);
-
-  searchInput.addEventListener('input', () => {
-    const query = searchInput.value.toLowerCase();
-    filteredData = racepackData.filter(item => {
-      return (item.no_bib && item.no_bib.toLowerCase().includes(query)) ||
-             (item.nama_peserta && item.nama_peserta.toLowerCase().includes(query)) ||
-             (item.bercode && item.bercode.toLowerCase().includes(query));
-    });
-    renderTable(filteredData);
-    renderStok(filteredData);
-  });
-
-  function showContent() {
-    loginSection.style.display = 'none';
-    contentSection.style.display = 'block';
   }
 
-  async function fetchData() {
+  function checkLogin() {
+    if (sessionStorage.getItem("racepackLoggedIn") === "true") {
+      loggedIn = true;
+      document.getElementById("loginSection").style.display = "none";
+      document.getElementById("contentSection").style.display = "block";
+      loadData();
+    }
+  }
+
+  checkLogin();
+
+  async function loadData() {
     try {
-      const res = await fetch(WEB_APP_URL);
-      if (!res.ok) throw new Error('Gagal mengambil data');
-      const data = await res.json();
-      racepackData = data;
-      filteredData = data;
-      renderTable(data);
-      renderStok(data);
-    } catch (error) {
-      alert('Error mengambil data: ' + error.message);
+      const response = await fetch(WEB_APP_URL);
+      if (!response.ok) throw new Error("Gagal mengambil data");
+      allData = await response.json();
+      renderStok();
+      renderTable();
+    } catch (err) {
+      alert("Gagal ambil data: " + err.message);
     }
   }
 
-  function renderTable(data) {
-    dataTableBody.innerHTML = '';
-    data.forEach((row, index) => {
-      const tr = document.createElement('tr');
-      tr.innerHTML = `
-        <td>${row.no_bib || ''}</td>
-        <td>${row.nama_peserta || ''}</td>
-        <td>${row.size_baju || ''}</td>
-        <td>${row.bercode || ''}</td>
-        <td><input type="text" data-field="status" data-index="${index}" value="${row.status || ''}"></td>
-        <td><input type="text
+  function renderStok() {
+    // Hitung total per size dan status
+    const sizes = ["XS","S","M","L","XL","XXL","XXXL"];
+    const stok = {};
+    sizes.forEach(s => stok[s] = { total: 0, taken: 0 });
+
+    allData.forEach(row => {
+      const size = (row.size_baju || "").toUpperCase();
+      if (sizes.includes(size)) {
+        stok[size].total++;
+        if ((row.status || "").toLowerCase() === "sudah diambil") {
+          stok[size].taken++;
+        }
+      }
+    });
+
+    const stokBody = document.getElementById("stokBody");
+    stokBody.innerHTML = "";
+
+    let totalAll = 0, totalTaken = 0;
+    sizes.forEach(size => {
+      const taken = stok[size].taken;
+      const total = stok[size].total;
+      const belum = total - taken;
+      totalAll += total;
+      totalTaken += taken;
+
+      stokBody.insertAdjacentHTML("beforeend", `
+        <tr>
+          <td>${size}</td>
+          <td>${total}</td>
+          <td>${taken}</td>
+          <td>${belum}</td>
+        </tr>
+      `);
+    });
+
+    // Tambah baris total keseluruhan
+    stokBody.insertAdjacentHTML("beforeend", `
+      <tr style="font-weight:bold; background:#ffe6cc;">
+        <td>Total Keseluruhan</td>
+        <td>${totalAll}</td>
+        <td>${totalTaken}</td>
+        <td>${totalAll - totalTaken}</td>
+      </tr>
+    `);
+  }
+
+  function renderTable() {
+    const filter = document.getElementById("searchInput").value.trim().toLowerCase();
+    const tbody = document.getElementById("tableBody");
+    tbody.innerHTML = "";
+
+    const filtered = allData.filter(row => {
+      return row.no_bib.toString().toLowerCase().includes(filter)
+        || (row.nama_peserta || "").toLowerCase().includes(filter)
+        || (row.bercode || "").toLowerCase().includes(filter);
+    });
+
+    filtered.forEach((row, index) => {
+      tbody.insertAdjacentHTML("beforeend", `
+        <tr>
+          <td>${row.no_bib}</td>
+          <td>${row.nama_peserta}</td>
+          <td>${row.size_baju}</td>
+          <td><input type="text" value="${row.bercode || ''}" data-field="bercode" data-index="${index}"></td>
+          <td><input type="text" value="${row.status || ''}" data-field="status" data-index="${index}"></td>
+          <td><input type="text" value="${row.nama_staff || ''}" data-field="nama_staff" data-index="${index}"></td>
+          <td><input type="text" value="${row.nama_pengambil || ''}" data-field="nama_pengambil" data-index="${index}"></td>
+          <td><input type="text" value="${row.no_tlp_pengambil || ''}" data-field="no_tlp_pengambil" data-index="${index}"></td>
+          <td><input type="text" value="${row.id_card_pengambil || ''}" data-field="id_card_pengambil" data-index="${index}"></td>
+          <td><input type="text" value="${row.keterangan || ''}" data-field="keterangan" data-index="${index}"></td>
+          <td><button class="btn-save" onclick="saveRow(${index})">Simpan</button></td>
+        </tr>
+      `);
+    });
+  }
+
+  async function saveRow(index) {
+    if (!loggedIn) {
+      alert("Silakan login terlebih dahulu!");
+      return;
+    }
+    const tbody = document.getElementById("tableBody");
+    const tr = tbody.children[index];
+    if (!tr) return;
+
+    // Ambil semua input di baris ini
+    const inputs = tr.querySelectorAll("input");
+    const updatedRow = { no_bib: allData[index].no_bib };
+
+    inputs.forEach(input => {
+      updatedRow[input.dataset.field] = input.value.trim();
+    });
+    updatedRow.password = PASSWORD;
+
+    try {
+      const res = await fetch(WEB_APP_URL, {
+        method: "POST",
+        body: JSON.stringify(updatedRow),
+        headers: { "Content-Type": "application/json" }
+      });
+      const json = await res.json();
+      if (json.success) {
+        alert("Data berhasil disimpan!");
+        loadData();
+      } else {
+        alert("Gagal simpan data: " + (json.message || "Unknown error"));
+      }
+    } catch (err) {
+      alert("Error saat simpan: " + err.message);
+    }
+  }
+</script>
+
+</body>
+</html>
