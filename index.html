@@ -1,40 +1,38 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="id">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Admin Racepack - Edit & Update</title>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Admin Racepack — Edit & Simpan</title>
 <style>
   :root{--accent:#ff7f27;--green:#1b8f3b;--red:#b02a2a}
-  body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial;margin:16px;background:#f6f6f6;color:#222}
+  body{font-family:system-ui,Segoe UI,Roboto,Arial;margin:16px;background:#f6f6f6}
   header{display:flex;align-items:center;gap:12px;margin-bottom:12px}
-  h1{margin:0;font-size:20px}
+  h1{margin:0}
   .warning{background:#fff4e6;border-left:6px solid var(--accent);padding:12px;border-radius:6px;margin-bottom:12px}
-  .controls{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;align-items:center}
-  input[type="text"], input[type="password"], select, textarea{padding:8px;border:1px solid #ddd;border-radius:6px}
+  .controls{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+  input[type="text"], input[type="password"], select{padding:8px;border:1px solid #ddd;border-radius:6px}
   button{background:var(--accent);color:#fff;border:0;padding:8px 10px;border-radius:6px;cursor:pointer}
-  table{width:100%;border-collapse:collapse;background:#fff;border-radius:6px;overflow:hidden}
+  table{width:100%;border-collapse:collapse;background:#fff}
   th,td{padding:8px;border-bottom:1px solid #eee;text-align:left;font-size:13px}
-  th{background:var(--accent);color:#fff;position:sticky;top:0}
-  tr:nth-child(even){background:#fcfcfc}
-  .status-badge{display:inline-block;padding:4px 8px;border-radius:999px;color:#fff;font-size:12px}
-  .sudah{background:var(--green)}
-  .belum{background:var(--red)}
-  .small{font-size:13px;color:#555}
+  th{background:var(--accent);color:#fff}
+  .status-badge{padding:4px 8px;border-radius:999px;color:#fff;font-size:12px}
+  .sudah{background:var(--green)} .belum{background:var(--red)}
   .stat-grid{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
-  .stat{background:#fff;padding:10px;border-radius:6px;border:1px solid #eee;min-width:150px;text-align:center}
-  .stat .n{font-weight:700;color:var(--accent);font-size:20px}
-  .inline-input{width:100%}
-  @media (max-width:900px){th,td{font-size:12px} .controls{flex-direction:column;align-items:stretch}}
+  .stat{background:#fff;padding:10px;border-radius:6px;border:1px solid #eee;min-width:140px;text-align:center}
+  .n{font-weight:700;color:var(--accent);font-size:18px}
+  .msg{padding:8px;border-radius:6px;margin-bottom:8px}
+  .msg.error{background:#ffe6e6;color:#900}
+  .msg.ok{background:#e6ffef;color:#0a6}
 </style>
 </head>
 <body>
 
 <header>
-  <div style="width:48px;height:48px;border-radius:8px;background:linear-gradient(45deg,#fff,#fff5f0);display:flex;align-items:center;justify-content:center;border:1px solid #ffd1a8">🏃‍♀️</div>
+  <div style="width:48px;height:48px;border-radius:8px;background:#fff5e6;display:flex;align-items:center;justify-content:center;border:1px solid #ffd1a8">🏃‍♀️</div>
   <div>
     <h1>Admin Racepack — Edit Pengambilan</h1>
-    <div class="small">Cari, edit kolom pengambilan, lalu klik "Simpan" untuk memperbarui Google Sheet.</div>
+    <div style="color:#666;font-size:13px">Login sekali, lalu simpan baris tanpa memasukkan password lagi (session aktif sampai tab ditutup).</div>
   </div>
 </header>
 
@@ -42,223 +40,202 @@
   JIKA ADA PESERTA YANG PENGAMBILAN RACEPACKNYA DIWAKILKAN DAN TIDAK MEMBAWA SURAT KUASA, MAKA PESERTA BISA MENGIRIM SOFT FILE SURAT KUASA YANG SUDAH DI ISI DAN DITANDATANGANI BESERTA FOTO KTP DAN DI DM KE IG TEGAL CITY RUN. HAL INI UNTUK MENCEGAH HAL YANG TIDAK DIINGINKAN SEPERTI PENGAMBILAN RACEPACK BERULANG. <strong>TUNJUKAN ID CARD & EMAIL VERIFIKASI</strong>
 </div>
 
+<div id="messages"></div>
+
 <div class="controls">
-  <input id="pwd" type="password" placeholder="Masukkan password (untuk update)" />
-  <input id="q" type="text" placeholder="Cari No BIB / Nama / Barcode..." style="flex:1" oninput="onSearch()" />
-  <button onclick="reload()">🔁 Reload</button>
+  <input id="pwd" type="password" placeholder="Masukkan password untuk update (disimpan sesion)" />
+  <button id="btnLogin">Login</button>
+  <input id="q" type="text" placeholder="Cari No BIB / Nama / Barcode..." style="flex:1" />
+  <button id="btnReload">Reload</button>
 </div>
 
-<div class="stat-grid" id="statGrid" aria-hidden="false">
-  <!-- Statistik terisi di sini -->
-</div>
+<div class="stat-grid" id="statGrid"></div>
 
 <table id="tbl">
   <thead>
     <tr>
-      <th style="width:80px">No BIB</th>
-      <th style="min-width:180px">Nama Peserta</th>
-      <th style="width:80px">Size</th>
-      <th style="width:120px">Barcode</th>
-      <th style="width:110px">Status</th>
-      <th style="min-width:140px">Nama Staff</th>
-      <th style="min-width:140px">Nama Pengambil</th>
-      <th style="width:120px">No. Tlp</th>
-      <th style="width:120px">ID Card</th>
-      <th style="min-width:160px">Keterangan</th>
-      <th style="width:90px">Aksi</th>
+      <th>No BIB</th><th>Nama Peserta</th><th>Size</th><th>Barcode</th>
+      <th>Status</th><th>Nama Staff</th><th>Nama Pengambil</th><th>No. Tlp</th><th>ID Card</th><th>Keterangan</th><th>Aksi</th>
     </tr>
   </thead>
   <tbody></tbody>
 </table>
 
 <script>
-/* ========== CONFIG ========== */
 const WEBAPP = "https://script.google.com/macros/s/AKfycbwju6ztDAnn7Sd9PCwHx1PMTxslFx-8nd_6-TU1qWDAigPL15zdbuqBNF4mQFLcoRNq/exec";
-const SKIP_ROWS = 7; // skip 1..7 (tampilkan mulai baris 8)
-/* ============================ */
+const SKIP = 7;
 
-let DATA = []; // raw data from API (array of peserta objects)
-let FILTERED = [];
-let clientPwd = '';
+function showMsg(text, type='error'){ const m=document.getElementById('messages'); m.innerHTML = '<div class=\"msg '+(type==='ok'?'ok':'error')+'\">'+text+'</div>'; setTimeout(()=>{ if(m) m.innerHTML=''; },5000); }
+function el(tag, attrs={}, html=''){ const e=document.createElement(tag); for(const k in attrs) e.setAttribute(k, attrs[k]); e.innerHTML = html; return e; }
 
-// utility
-function el(tag, attrs={}, children=''){ const e=document.createElement(tag); for(const k in attrs) e.setAttribute(k, attrs[k]); if(typeof children==='string') e.innerHTML=children; else if(Array.isArray(children)) children.forEach(c=>e.appendChild(c)); return e; }
-function text(s){ return document.createTextNode(s==null?'':s); }
+let DATA = [], FILTERED = [];
 
-async function fetchData(){
+// session password storage
+if(sessionStorage.getItem('racepack_pwd')){
+  document.getElementById('pwd').value = sessionStorage.getItem('racepack_pwd');
+}
+
+document.getElementById('btnLogin').addEventListener('click', ()=>{
+  const p = document.getElementById('pwd').value.trim();
+  if(!p){ showMsg('Password tidak boleh kosong'); return; }
+  sessionStorage.setItem('racepack_pwd', p);
+  loadData();
+});
+
+document.getElementById('btnReload').addEventListener('click', ()=> loadData());
+document.getElementById('q').addEventListener('input', ()=> { const v=this.value; filterTable(); });
+
+async function loadData(){
   try{
     const r = await fetch(WEBAPP + '?_=' + Date.now());
-    if(!r.ok) throw new Error('Fetch failed '+r.status);
+    if(!r.ok) throw new Error('HTTP '+r.status);
     const json = await r.json();
-    // expect json is array of objects (peserta) OR {peserta,...} depending script; handle both
-    let arr = [];
-    if(Array.isArray(json)) arr = json;
-    else if(json.peserta) arr = json.peserta;
-    DATA = arr.slice(SKIP_ROWS); // skip headers/notes in top rows
-    FILTERED = DATA.slice();
-    renderTable(FILTERED);
+    // if API returns object { peserta: [...] } handle that
+    let arr = Array.isArray(json) ? json : (json.peserta ? json.peserta : []);
+    DATA = arr.slice(SKIP); FILTERED = DATA.slice();
     renderStats();
+    renderTable(FILTERED);
+    showMsg('Data dimuat', 'ok');
   }catch(err){
-    alert('Gagal ambil data. Cek console.'); console.error(err);
+    console.error(err);
+    showMsg('Gagal ambil data: '+ (err.message || err), 'error');
   }
 }
 
 function renderStats(){
-  // compute totals and per-size counts and taken counts
   const total = DATA.length;
   const taken = DATA.filter(d => (d.status||'').toLowerCase().includes('sudah')).length;
   const notTaken = total - taken;
   const sizes = ['XS','S','M','L','XL','XXL','XXXL'];
-  const sizeTotals = {}; const sizeTaken = {};
-  sizes.forEach(s=>{ sizeTotals[s]=0; sizeTaken[s]=0; });
-  DATA.forEach(d=>{
+  const totals = {}; const takenBy = {}; sizes.forEach(s=>{ totals[s]=0; takenBy[s]=0; });
+  DATA.forEach(d => {
     const s = (d.size_baju||'').toUpperCase();
-    if(sizeTotals[s]!==undefined) sizeTotals[s] += 1;
-    if((d.status||'').toLowerCase().includes('sudah') && sizeTaken[s]!==undefined) sizeTaken[s] += 1;
+    if(totals[s]!==undefined) totals[s]++;
+    if((d.status||'').toLowerCase().includes('sudah') && takenBy[s]!==undefined) takenBy[s]++;
   });
 
-  const grid = document.getElementById('statGrid'); grid.innerHTML = '';
-  grid.appendChild(statBox('Total Peserta', total));
-  grid.appendChild(statBox('Sudah Ambil', taken));
-  grid.appendChild(statBox('Belum Ambil', notTaken));
-  sizes.forEach(s=>{
-    grid.appendChild(statBox('Size ' + s, `${sizeTotals[s]} (ambil ${sizeTaken[s]})`));
-  });
+  const grid = document.getElementById('statGrid'); grid.innerHTML='';
+  grid.appendChild(stat('Total Peserta', total));
+  grid.appendChild(stat('Sudah Ambil', taken));
+  grid.appendChild(stat('Belum Ambil', notTaken));
+  sizes.forEach(s=> grid.appendChild(stat('Size '+s, totals[s]+' (ambil '+takenBy[s]+')')));
 }
 
-function statBox(title, val){
-  const d = el('div', {class:'stat'});
-  d.innerHTML = `<div style="color:#666;font-size:13px">${title}</div><div class="n" style="font-weight:700;color:var(--accent);margin-top:6px">${val}</div>`;
+function stat(title, val){
+  const d = el('div',{class:'stat'}, '<div style=\"color:#666\">'+title+'</div><div class=\"n\">'+val+'</div>');
   return d;
 }
 
 function renderTable(rows){
-  const tbody = document.querySelector('#tbl tbody'); tbody.innerHTML = '';
-  rows.forEach((r, idx) => {
+  const tbody = document.querySelector('#tbl tbody'); tbody.innerHTML='';
+  rows.forEach(r => {
     const tr = document.createElement('tr');
-
-    // Read-only cells: no_bib, nama_peserta, size_baju, barcode
-    tr.appendChild(el('td',{}, r.no_bib || ''));
-    tr.appendChild(el('td',{}, r.nama_peserta || ''));
-    tr.appendChild(el('td',{}, r.size_baju || ''));
-    tr.appendChild(el('td',{}, r.barcode || ''));
-
-    // Editable: status (select), nama_staff, nama_pengambil, no_tlp_pengambil, id_card_pengambil, keterangan
-    const statusCell = el('td');
-    const sel = el('select', {class:'inline-input'});
-    ['','Belum','Sudah','Sudah Ambil'].forEach(opt=>{
-      const o = el('option',{value:opt}, opt); sel.appendChild(o);
-    });
-    sel.value = r.status || '';
-    // color badge display next to select
-    const badge = el('span', {style:'margin-left:8px'});
+    tr.innerHTML = `
+      <td>${escapeHtml(r.no_bib)}</td>
+      <td>${escapeHtml(r.nama_peserta)}</td>
+      <td>${escapeHtml(r.size_baju)}</td>
+      <td>${escapeHtml(r.barcode)}</td>
+      <td></td>
+      <td><input class="inp" data-key="nama_staff" value="${escapeAttr(r.nama_staff||'')}"/></td>
+      <td><input class="inp" data-key="nama_pengambil" value="${escapeAttr(r.nama_pengambil||'')}"/></td>
+      <td><input class="inp" data-key="no_tlp_pengambil" value="${escapeAttr(r.no_tlp_pengambil||'')}"/></td>
+      <td><input class="inp" data-key="id_card_pengambil" value="${escapeAttr(r.id_card_pengambil||'')}"/></td>
+      <td><input class="inp" data-key="keterangan" value="${escapeAttr(r.keterangan||'')}"/></td>
+      <td><button class="saveBtn">Simpan</button></td>
+    `;
+    // set status cell with select + badge
+    const statusCell = tr.children[4];
+    const select = el('select',{class:'sel'});
+    ['', 'Belum', 'Sudah', 'Sudah Ambil'].forEach(o=> select.appendChild(el('option',{value:o}, o)));
+    select.value = r.status || '';
+    const badge = el('span',{}, '');
     setBadge(badge, r.status);
-    sel.addEventListener('change', ()=> setBadge(badge, sel.value));
-    statusCell.appendChild(sel);
+    select.addEventListener('change', ()=> setBadge(badge, select.value));
+    statusCell.appendChild(select);
     statusCell.appendChild(badge);
-    tr.appendChild(statusCell);
 
-    // nama_staff
-    const ns = el('td'); ns.appendChild(el('input',{type:'text', class:'inline-input', value: r.nama_staff || ''})); tr.appendChild(ns);
-    const np = el('td'); np.appendChild(el('input',{type:'text', class:'inline-input', value: r.nama_pengambil || ''})); tr.appendChild(np);
-    const tel = el('td'); tel.appendChild(el('input',{type:'text', class:'inline-input', value: r.no_tlp_pengambil || ''})); tr.appendChild(tel);
-    const idc = el('td'); idc.appendChild(el('input',{type:'text', class:'inline-input', value: r.id_card_pengambil || ''})); tr.appendChild(idc);
-    const ket = el('td'); ket.appendChild(el('input',{type:'text', class:'inline-input', value: r.keterangan || ''})); tr.appendChild(ket);
-
-    // aksi save
-    const aksi = el('td');
-    const saveBtn = el('button',{}, 'Simpan');
-    saveBtn.addEventListener('click', ()=> onSaveRow(r, {
-      status: sel.value,
-      nama_staff: ns.querySelector('input').value,
-      nama_pengambil: np.querySelector('input').value,
-      no_tlp_pengambil: tel.querySelector('input').value,
-      id_card_pengambil: idc.querySelector('input').value,
-      keterangan: ket.querySelector('input').value,
-      btn: saveBtn
-    }));
-    aksi.appendChild(saveBtn);
-    tr.appendChild(aksi);
+    // save handler
+    tr.querySelector('.saveBtn').addEventListener('click', ()=> {
+      const payload = {
+        password: sessionStorage.getItem('racepack_pwd') || '',
+        no_bib: r.no_bib,
+        status: select.value,
+        nama_staff: tr.querySelector('input[data-key=\"nama_staff\"]').value,
+        nama_pengambil: tr.querySelector('input[data-key=\"nama_pengambil\"]').value,
+        no_tlp_pengambil: tr.querySelector('input[data-key=\"no_tlp_pengambil\"]').value,
+        id_card_pengambil: tr.querySelector('input[data-key=\"id_card_pengambil\"]').value,
+        keterangan: tr.querySelector('input[data-key=\"keterangan\"]').value
+      };
+      saveRow(payload, tr.querySelector('.saveBtn'));
+    });
 
     tbody.appendChild(tr);
   });
 }
 
-function setBadge(elm, status){
+function setBadge(el, status){
   const s = (status||'').toLowerCase();
-  if(s.includes('sudah')){
-    elm.innerHTML = '<span class="status-badge sudah">SUDAH</span>';
-  } else if(s.includes('belum')){
-    elm.innerHTML = '<span class="status-badge belum">BELUM</span>';
-  } else {
-    elm.innerHTML = '';
-  }
+  if(s.includes('sudah')) el.innerHTML = '<span class=\"status-badge sudah\">SUDAH</span>';
+  else if(s.includes('belum')) el.innerHTML = '<span class=\"status-badge belum\">BELUM</span>';
+  else el.innerHTML = '';
 }
 
-function onSearch(){
-  const q = document.getElementById('q').value.trim().toLowerCase();
-  if(!q){ FILTERED = DATA.slice(); renderTable(FILTERED); return; }
-  FILTERED = DATA.filter(d => {
-    return (d.no_bib||'').toString().toLowerCase().includes(q) ||
-           (d.nama_peserta||'').toLowerCase().includes(q) ||
-           (d.barcode||'').toString().toLowerCase().includes(q);
-  });
-  renderTable(FILTERED);
-}
-
-// save single row via POST
-async function onSaveRow(orig, newVals){
-  const pwd = document.getElementById('pwd').value || '';
-  if(!pwd){ alert('Masukkan password (di atas) untuk menyimpan.'); return; }
-  // disable button
-  newVals.btn.disabled = true;
-  newVals.btn.textContent = 'Menyimpan...';
-
-  const payload = {
-    password: pwd,
-    no_bib: orig.no_bib,
-    status: newVals.status,
-    nama_staff: newVals.nama_staff,
-    nama_pengambil: newVals.nama_pengambil,
-    no_tlp_pengambil: newVals.no_tlp_pengambil,
-    id_card_pengambil: newVals.id_card_pengambil,
-    keterangan: newVals.keterangan
-  };
-
+async function saveRow(payload, btn){
+  btn.disabled = true; const oldText = btn.textContent; btn.textContent = 'Menyimpan...';
   try{
     const res = await fetch(WEBAPP, {
       method: 'POST',
       headers: {'Content-Type':'application/json'},
       body: JSON.stringify(payload)
     });
+    if(!res.ok){
+      const t = await res.text().catch(()=>null);
+      throw new Error('HTTP '+res.status + (t?(' — '+t):''));
+    }
     const j = await res.json();
     if(j.success){
-      // reflect changes locally
-      // find index in DATA by no_bib (first occurrence)
-      const ix = DATA.findIndex(d => (d.no_bib||'') == (orig.no_bib||''));
+      showMsg('Berhasil disimpan', 'ok');
+      // update local DATA
+      const ix = DATA.findIndex(d => String(d.no_bib) === String(payload.no_bib));
       if(ix > -1){
-        DATA[ix] = Object.assign(DATA[ix], payload); // update local
+        DATA[ix].status = payload.status;
+        DATA[ix].nama_staff = payload.nama_staff;
+        DATA[ix].nama_pengambil = payload.nama_pengambil;
+        DATA[ix].no_tlp_pengambil = payload.no_tlp_pengambil;
+        DATA[ix].id_card_pengambil = payload.id_card_pengambil;
+        DATA[ix].keterangan = payload.keterangan;
       }
-      // re-render
-      renderTable(FILTERED.length ? FILTERED : DATA);
       renderStats();
-      newVals.btn.textContent = 'Simpan';
-      newVals.btn.disabled = false;
-      alert('Berhasil disimpan.');
     } else {
-      throw new Error(j.message || 'Gagal menyimpan.');
+      throw new Error(j.message || 'Server balikan sukses:false');
     }
   }catch(err){
-    console.error(err);
-    alert('Error saat menyimpan: ' + (err.message || err));
-    newVals.btn.textContent = 'Simpan';
-    newVals.btn.disabled = false;
+    console.error('Save error', err);
+    showMsg('Error saat menyimpan: ' + (err.message || err), 'error');
+  }finally{
+    btn.disabled = false; btn.textContent = oldText;
   }
 }
 
-async function reload(){ await fetchData(); document.getElementById('q').value=''; }
+function filterTable(){
+  const q = document.getElementById('q').value.trim().toLowerCase();
+  if(!q){ renderTable(DATA); return; }
+  const f = DATA.filter(d=>{
+    return String(d.no_bib||'').toLowerCase().includes(q) ||
+           String(d.nama_peserta||'').toLowerCase().includes(q) ||
+           String(d.barcode||'').toLowerCase().includes(q);
+  });
+  renderTable(f);
+}
 
-window.addEventListener('load', ()=> fetchData());
+function escapeHtml(s){ if(s==null) return ''; return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function escapeAttr(s){ return (s||'').replace(/"/g,'&quot;'); }
+
+// initial
+window.addEventListener('load', ()=> {
+  // if password already in sessionStorage, auto-load
+  if(sessionStorage.getItem('racepack_pwd')) loadData();
+});
 </script>
 </body>
 </html>
